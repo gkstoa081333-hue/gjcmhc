@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>사례관리 기록지 · 공주시정신건강복지센터</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="style.css">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+</head>
+<body>
+
+
+<!-- 글로벌 내비 — 통합 앱 뼈대 (시안 E) -->
+<nav class="gnav" id="gnav">
+  <span class="logo"> 공주시정신건강복지센터</span>
+  <a class="on">사례기록</a>
+  <a onclick="openGenogram()">가계도</a>
+  <a class="soon" title="통합 예정">일정</a>
+  <a class="soon" title="통합 예정">비품</a>
+  <span class="sp"></span>
+  <span class="who" id="gnavWho"></span>
+</nav>
+
+<!-- ============ 초기 설정 ============ -->
+<div id="scrSetup" class="auth-wrap hide">
+  <div class="auth-box">
+    <h1>초기 설정</h1>
+    <p class="sub">첫 실행입니다. 관리자 계정과 센터 암호구절을 등록하세요.</p>
+    <label>관리자 이름</label><input id="suName" placeholder="예: 김한샘">
+    <label>관리자 아이디</label><input id="suId" autocomplete="off">
+    <label>비밀번호</label><input id="suPw" type="password">
+    <label>센터 암호구절 (이름 암호화 키)</label><input id="suKey" type="password" placeholder="전 직원이 공유할 문구">
+    <label>센터 암호구절 확인</label><input id="suKey2" type="password">
+    <div class="auth-note">⚠ 암호구절을 분실하면 저장된 이름을 <b>복구할 수 없습니다.</b> 별도 안전한 곳에 보관하세요.</div>
+    <div class="auth-err" id="suErr"></div>
+    <button class="pill wide" onclick="doSetup()">설정 완료</button>
+  </div>
+</div>
+
+<!-- ============ 로그인 ============ -->
+<div id="scrLogin" class="auth-wrap hide">
+  <div class="auth-box">
+    <h1>사례관리 기록지</h1>
+    <p class="sub">공주시정신건강복지센터</p>
+    <label>아이디</label><input id="liId" autocomplete="username">
+    <label>비밀번호</label><input id="liPw" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    <label>센터 암호구절</label><input id="liKey" type="password" placeholder="이름 복호화에 필요" onkeydown="if(event.key==='Enter')doLogin()">
+    <div class="auth-err" id="liErr"></div>
+    <button class="pill wide" id="liBtn" onclick="doLogin()">로그인</button>
+    <div class="auth-note">보안을 위해 새로고침 시 재로그인이 필요합니다. 암호화 키는 브라우저 메모리에만 유지됩니다.</div>
+  </div>
+</div>
+
+<!-- ============ 사례 목록 (시안 D) ============ -->
+<div id="scrList" class="hide">
+  <div class="subnav">
+    <div class="cat">사례 목록<small id="listCount"></small></div>
+    <span class="sp"></span>
+    <button class="nlink" id="btnAdmin" onclick="openAdmin()">계정 관리</button>
+    <button class="nlink" onclick="logout()">로그아웃</button>
+    <button class="pill" onclick="openNewCase()">＋ 새 사례</button>
+  </div>
+  <div class="screen">
+    <div class="search">🔍<input id="q" placeholder="사례번호 · 이름 · 담당자 검색" oninput="renderList()"></div>
+    <div class="grid" id="caseList"></div>
+  </div>
+</div>
+
+<!-- ============ 편집 화면 (시안 B) ============ -->
+<div id="scrEdit" class="hide">
+  <div class="subnav">
+    <button class="nlink" onclick="backToList()">‹ 목록</button>
+    <div class="cat" id="edTitle" style="font-size:16px"></div>
+    <span class="sp"></span>
+    <div class="tabstrip" id="tabs"></div>
+  </div>
+  <div class="screen" id="tabBody"></div>
+  <div class="sticky" id="stickyBar">
+    <span class="state" id="stState"></span>
+    <span class="sp"></span>
+    <button class="pill gray" id="btnPrev" onclick="stepTab(-1)">이전</button>
+    <button class="pill" id="btnNext" onclick="stepTab(1)">다음 섹션</button>
+  </div>
+</div>
+
+<div id="modalHost"></div>
+<div class="toast" id="toast"></div>
+<div id="printArea"></div>
+
+<!-- ===== 스크립트 로드 순서 중요 =====
+     config → crypto → schema → auth(상태·헬퍼·인증) → app → admin → main(부팅) -->
+<script src="firebase-config.js"></script>
+<script src="crypto.js"></script>
+<script src="schema.js"></script>
+<script src="auth.js"></script>
+<script src="app.js"></script>
+<script src="admin.js"></script>
+<script src="main.js"></script>
+</body>
+</html>

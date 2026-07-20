@@ -1,0 +1,136 @@
+/* style.css — Apple 디자인 시스템 (사례관리 기록지) */
+/* ================= Apple 디자인 토큰 ================= */
+:root{
+  --blue:#0066cc; --blue-focus:#0071e3; --blue-dark:#2997ff;
+  --canvas:#ffffff; --parchment:#f5f5f7; --pearl:#fafafc;
+  --tile1:#272729; --tile2:#2a2a2c; --black:#000000;
+  --ink:#1d1d1f; --muted80:#333333; --muted48:#7a7a7a; --ondark-muted:#cccccc;
+  --hairline:#e0e0e0; --divider:#f0f0f0;
+  --red:#d70015; --red-bg:#fff2f3;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,'Pretendard Variable',Pretendard,BlinkMacSystemFont,sans-serif;background:var(--parchment);color:var(--ink);font-size:15px;line-height:1.47;letter-spacing:-.2px;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer;border:none;background:none;font-size:14px;letter-spacing:-.22px}
+button:active{transform:scale(.96)}
+input,textarea,select{font-family:inherit;font-size:15px;color:var(--ink);border:1px solid var(--hairline);border-radius:12px;padding:10px 14px;background:var(--canvas);width:100%;outline:none;letter-spacing:-.2px}
+input:focus,textarea:focus{border-color:var(--blue-focus);box-shadow:0 0 0 2px rgba(0,113,227,.18)}
+textarea{resize:vertical;min-height:76px}
+.hide{display:none!important}
+
+/* ================= 글로벌 내비 (시안 E) ================= */
+.gnav{background:var(--black);color:#fff;display:flex;align-items:center;gap:18px;padding:0 18px;height:44px;font-size:12px;letter-spacing:-.12px;position:sticky;top:0;z-index:60}
+.gnav .logo{font-size:13px;font-weight:600;letter-spacing:-.2px;white-space:nowrap}
+.gnav a{color:#86868b;text-decoration:none;cursor:pointer}
+.gnav a.on{color:#fff}
+.gnav a.soon{cursor:default}
+.gnav .sp{flex:1}
+.gnav .who{color:#86868b;white-space:nowrap}
+
+/* ================= 프로스티드 서브 내비 (시안 B) ================= */
+.subnav{position:sticky;top:44px;z-index:50;display:flex;align-items:center;gap:14px;background:rgba(245,245,247,.85);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid rgba(0,0,0,.08);padding:0 18px;height:52px}
+.subnav .cat{font-size:19px;font-weight:600;letter-spacing:-.3px;white-space:nowrap}
+.subnav .cat small{display:block;font-size:11px;font-weight:400;color:var(--muted48);line-height:1.1}
+.subnav .sp{flex:1}
+.subnav .nlink{font-size:13px;color:var(--ink);white-space:nowrap}
+.pill{background:var(--blue);color:#fff;border-radius:999px;padding:8px 18px;font-size:13.5px;white-space:nowrap}
+.pill:focus-visible{outline:2px solid var(--blue-focus);outline-offset:2px}
+.pill.ghost{background:transparent;color:var(--blue);border:1px solid var(--blue)}
+.pill.gray{background:var(--pearl);color:var(--muted80);border:1px solid var(--divider)}
+
+.screen{max-width:860px;margin:0 auto;padding:22px 16px 120px}
+
+/* ================= 로그인 ================= */
+.auth-wrap{min-height:calc(100vh - 44px);display:flex;align-items:center;justify-content:center;padding:20px}
+.auth-box{width:100%;max-width:400px;background:var(--canvas);border:1px solid var(--hairline);border-radius:18px;padding:34px 30px}
+.auth-box h1{font-size:26px;font-weight:600;letter-spacing:-.37px;line-height:1.1}
+.auth-box .sub{font-size:14px;color:var(--muted48);margin:4px 0 22px}
+.auth-box label{display:block;font-size:13px;font-weight:600;color:var(--muted80);margin:13px 0 5px}
+.auth-note{margin-top:16px;font-size:12px;color:var(--muted48);line-height:1.55;background:var(--parchment);border-radius:12px;padding:11px 13px}
+.auth-err{margin-top:10px;font-size:13px;color:var(--red);font-weight:600}
+.wide{width:100%;padding:12px;font-size:15px;margin-top:18px}
+
+/* ================= 사례 목록 — 스토어 그리드 (시안 D) ================= */
+.search{display:flex;align-items:center;gap:9px;background:var(--canvas);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:11px 18px;margin-bottom:16px}
+.search input{border:none;padding:0;border-radius:0;background:transparent;font-size:14.5px}
+.search input:focus{box-shadow:none}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.gc{background:var(--canvas);border:1px solid var(--hairline);border-radius:18px;padding:18px;display:flex;flex-direction:column;cursor:pointer;transition:border-color .15s}
+.gc:hover{border-color:var(--blue-focus)}
+.gc .no{font-size:11px;font-weight:600;color:var(--blue);letter-spacing:0}
+.gc .nm{font-size:17px;font-weight:600;letter-spacing:-.37px;margin-top:2px}
+.gc .mt{font-size:12px;color:var(--muted48);margin-top:2px}
+.gc .pr{height:4px;background:var(--divider);border-radius:2px;margin-top:12px;overflow:hidden}
+.gc .pr i{display:block;height:100%;background:var(--blue);border-radius:2px}
+.gc .foot{display:flex;align-items:center;justify-content:space-between;margin-top:10px}
+.gc .lk{font-size:13px;color:var(--blue)}
+.gc .del{font-size:12px;color:var(--muted48);padding:2px 6px}
+.empty{background:var(--canvas);border:1px solid var(--hairline);border-radius:18px;text-align:center;color:var(--muted48);padding:52px 20px;font-size:14px}
+
+/* ================= 편집기 — 컨피규레이터 (시안 B) ================= */
+.tabstrip{display:flex;gap:20px}
+.tabstrip button{font-size:13.5px;color:var(--ink);padding:4px 0;position:relative}
+.tabstrip button.on{color:var(--blue);font-weight:600}
+.tabstrip button .pc{font-size:10px;color:var(--muted48);margin-left:3px;font-weight:400}
+.grp{background:var(--canvas);border:1px solid var(--hairline);border-radius:18px;padding:22px;margin-bottom:14px}
+.grp>h3{font-size:16px;font-weight:600;letter-spacing:-.37px;margin-bottom:16px;display:flex;align-items:center;gap:7px}
+.grp>h3 .age{font-size:12px;font-weight:400;color:var(--muted48)}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px 18px}
+.fgrid .w2{grid-column:1/-1}
+@media(max-width:560px){.fgrid{grid-template-columns:1fr}}
+.subrow{margin-bottom:16px}
+.subrow:last-child{margin-bottom:0}
+.fld>label{display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:600;letter-spacing:-.22px;margin-bottom:8px}
+.fld>label .multi{font-size:10px;font-weight:400;color:var(--muted48);border:1px solid var(--hairline);border-radius:999px;padding:0 7px}
+.tipbtn{font-size:12px;color:var(--blue);font-weight:400;padding:0}
+.tipbtn:active{transform:none}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:9px 16px;border-radius:999px;border:1px solid var(--hairline);background:var(--canvas);font-size:13.5px;color:var(--ink);transition:border .1s;user-select:none}
+.chip.on{border:2px solid var(--blue-focus);padding:8px 15px;font-weight:600}
+.chip.danger.on{border-color:var(--red);color:var(--red);background:var(--red-bg)}
+.riskbox{border:2px solid var(--red);background:var(--red-bg);border-radius:14px;padding:16px;margin-top:12px}
+.riskbox h4{font-size:13.5px;color:var(--red);font-weight:700;margin-bottom:12px}
+.insight-opt{display:flex;gap:11px;align-items:flex-start;padding:12px 14px;border:1px solid var(--hairline);border-radius:14px;margin-bottom:8px;cursor:pointer;font-size:13.5px;color:var(--muted80);background:var(--canvas);transition:border .1s}
+.insight-opt.on{border:2px solid var(--blue-focus);padding:11px 13px;color:var(--ink)}
+.insight-opt b{flex:none;font-size:13px;color:var(--blue)}
+.serial7{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:14px}
+.serial7 input{width:62px;text-align:center;font-weight:600;border-radius:999px}
+.serial7 input.ok{border:2px solid var(--blue-focus)}
+.serial7 input.bad{border:2px solid var(--red);color:var(--red)}
+.grade{font-size:12.5px;font-weight:600;color:var(--blue)}
+.hint{font-size:12.5px;color:var(--muted48);margin:-4px 0 10px}
+
+/* ================= 하단 스티키 바 (시안 B) ================= */
+.sticky{position:fixed;left:0;right:0;bottom:0;z-index:55;display:flex;align-items:center;gap:10px;background:rgba(245,245,247,.9);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-top:1px solid rgba(0,0,0,.08);padding:12px 18px}
+.sticky .state{font-size:13px;color:var(--ink)}
+.sticky .state em{font-style:normal;color:var(--muted48)}
+.sticky .sp{flex:1}
+
+/* ================= 다크 타일 (가계도 연동) ================= */
+.tile-dark{background:var(--tile1);color:#fff;border-radius:18px;padding:22px;margin-bottom:14px}
+.tile-dark h3{font-size:16px;font-weight:600;letter-spacing:-.37px}
+.tile-dark p{font-size:13px;color:var(--ondark-muted);margin:4px 0 12px}
+.tile-dark a,.tile-dark .lkd{color:var(--blue-dark);font-size:13.5px;cursor:pointer}
+.ai-out{white-space:pre-wrap;background:var(--parchment);border-radius:14px;padding:16px;font-size:14px;min-height:110px;line-height:1.6}
+.spinner{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:-2px;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ================= 모달·토스트 ================= */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{background:var(--canvas);border-radius:18px;padding:26px;width:100%;max-width:440px;max-height:85vh;overflow-y:auto}
+.modal h3{font-size:17px;font-weight:600;letter-spacing:-.37px;margin-bottom:14px}
+.modal label{display:block;font-size:13px;font-weight:600;color:var(--muted80);margin:11px 0 4px}
+.acct-row{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--divider);font-size:14px}
+.toast{position:fixed;bottom:84px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:11px 22px;border-radius:999px;font-size:13.5px;z-index:200;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+
+/* ================= 인쇄 ================= */
+#printArea{display:none}
+@media print{
+  body>*{display:none!important}
+  #printArea{display:block!important;font-size:11pt;color:#000}
+  #printArea h1{font-size:15pt;text-align:center;margin-bottom:12pt}
+  #printArea h2{font-size:12pt;margin:10pt 0 5pt;border-left:4px solid #333;padding-left:6pt}
+  #printArea table{width:100%;border-collapse:collapse;margin-bottom:6pt}
+  #printArea th,#printArea td{border:1px solid #555;padding:4pt 6pt;font-size:9.5pt;text-align:left;vertical-align:top}
+  #printArea th{background:#efefef;width:110pt;font-weight:700}
+}
