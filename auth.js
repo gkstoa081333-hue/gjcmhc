@@ -107,6 +107,10 @@ function authErr(e){
     'auth/user-not-found':'등록되지 않은 이메일입니다.',
     'auth/wrong-password':'비밀번호가 맞지 않습니다.',
     'auth/invalid-credential':'이메일 또는 비밀번호가 맞지 않습니다.',
+    'auth/invalid-login-credentials':'이메일 또는 비밀번호가 맞지 않습니다. 가계도 앱과 같은 계정을 사용합니다.',
+    'auth/missing-password':'비밀번호를 입력해 주세요.',
+    'auth/user-disabled':'사용이 중지된 계정입니다. 관리자에게 문의하세요.',
+    'auth/network-request-failed':'네트워크 오류입니다. 연결 상태를 확인해 주세요.',
     'auth/email-already-in-use':'이미 가입된 이메일입니다. 로그인해 주세요.',
     'auth/weak-password':'비밀번호는 6자 이상이어야 합니다.',
     'auth/too-many-requests':'시도가 너무 많습니다. 잠시 후 다시 시도해 주세요.',
@@ -235,9 +239,11 @@ async function routeUser(user){
 const PIN_GRACE = 10*60*1000;   // 마지막 사용 후 10분 이내면 PIN 생략
 let PIN_BUF='', PIN_MODE='verify', PIN_TMP='', PIN_TRIES=0;
 
+// ⚠ 가계도 앱과 반드시 동일해야 합니다 (uid 를 솔트로 섞고 16진수로 출력)
+//    users/{uid}/pinHash 를 두 앱이 공유하므로 계산법이 다르면 PIN이 맞지 않습니다.
 async function pinHash(pin){
-  const d=await crypto.subtle.digest('SHA-256', new TextEncoder().encode('gjmhc-pin:'+pin));
-  return btoa(String.fromCharCode(...new Uint8Array(d)));
+  const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(ME.uid + ':' + pin));
+  return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
 }
 function pinStamp(){ try{ localStorage.setItem('pinOK', JSON.stringify({u:ME.uid,t:Date.now()})); }catch(e){} }
 function pinValid(){
