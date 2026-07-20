@@ -67,7 +67,7 @@ function renderKPI(){
     {n:all.length, t:'전체 사례'},
     {n:newThisMonth, t:'이번 달 신규'},
     {n:mine, t:'내 담당'},
-    {n:incomplete, t:'미완성 기록', warn:incomplete>0}
+    {n:incomplete, t:'작성 중'}
   ];
   el.innerHTML = kpis.map(k=>`<div class="k${k.warn?' warn':''}"><div class="n">${k.n}</div><div class="t">${k.t}</div></div>`).join('');
 }
@@ -137,6 +137,7 @@ async function openCase(cid){
   CUR=cid; CURTAB=0; dirty=false;
   // 기록은 민감정보라 목록에서 일괄 조회하지 않고, 열람 시점에 개별 로드
   const c=CASES[cid];
+  if(!c){ toast('사례를 불러오는 중입니다. 잠시 후 다시 열어주세요.'); return; }
   if(!c.s1){
     try{
       const rec=(await db.ref(recordPath(cid)).once('value')).val()||{};
@@ -354,7 +355,11 @@ async function genSummary(){
     CASES[CUR].aiSummary=data.summary;
     $('aiOut').textContent=data.summary;
     markDirty(); flushSave();
-  }catch(e){ toast('요약 생성 실패: '+e.message); }
+  }catch(e){
+    toast('요약 생성 실패');
+    $('aiOut').textContent = '요약 생성에 실패했습니다: ' + (e.message||'') +
+      '\n\n확인할 것:\n1. Cloudflare → 프로젝트 → Settings → Variables and Secrets 에 OPENAI_API_KEY 등록 여부\n2. worker.js 배포 여부 (wrangler.jsonc 의 main 설정)\n(입력·저장 기능과는 무관합니다)';
+  }
   finally{ btn.disabled=false; btn.textContent='요약 초안 생성'; }
 }
 function copySummary(){

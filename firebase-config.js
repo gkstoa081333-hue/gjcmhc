@@ -22,6 +22,9 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db   = firebase.database();
 
+// AI 요약 API (worker.js 가 같은 도메인에서 처리)
+const AI_ENDPOINT = "/api/ai-summary";
+
 // 함께 쓰는 센터 앱 (상단 메뉴)
 const APP_LINKS = {
   genogram : { name:'가계도', url:'https://gkstoa081333-hue.github.io/Family-tree/' },
