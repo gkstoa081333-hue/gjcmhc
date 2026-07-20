@@ -17,40 +17,80 @@
 <nav class="gnav" id="gnav">
   <span class="logo"> 공주시정신건강복지센터</span>
   <a class="on">사례기록</a>
-  <a onclick="openGenogram()">가계도</a>
-  <a class="soon" title="통합 예정">일정</a>
-  <a class="soon" title="통합 예정">비품</a>
+  <a data-app="genogram" onclick="openApp('genogram')">가계도</a>
+  <a data-app="schedule" onclick="openApp('schedule')">일정</a>
+  <a data-app="inventory" onclick="openApp('inventory')">비품</a>
   <span class="sp"></span>
   <span class="who" id="gnavWho"></span>
 </nav>
 
-<!-- ============ 초기 설정 ============ -->
-<div id="scrSetup" class="auth-wrap hide">
+<!-- ============ 로그인 / 가입 / 기관등록 ============ -->
+<div id="scrAuth" class="auth-wrap hide">
   <div class="auth-box">
-    <h1>초기 설정</h1>
-    <p class="sub">첫 실행입니다. 관리자 계정과 센터 암호구절을 등록하세요.</p>
-    <label>관리자 이름</label><input id="suName" placeholder="예: 김한샘">
-    <label>관리자 아이디</label><input id="suId" autocomplete="off">
-    <label>비밀번호</label><input id="suPw" type="password">
-    <label>센터 암호구절 (이름 암호화 키)</label><input id="suKey" type="password" placeholder="전 직원이 공유할 문구">
-    <label>센터 암호구절 확인</label><input id="suKey2" type="password">
-    <div class="auth-note">⚠ 암호구절을 분실하면 저장된 이름을 <b>복구할 수 없습니다.</b> 별도 안전한 곳에 보관하세요.</div>
-    <div class="auth-err" id="suErr"></div>
-    <button class="pill wide" onclick="doSetup()">설정 완료</button>
+    <h1>사례관리 기록지</h1>
+    <p class="sub">공주시정신건강복지센터 통합 플랫폼</p>
+
+    <div class="authtabs">
+      <button id="tabLogin" class="on" onclick="switchAuth('login')">로그인</button>
+      <button id="tabSignup" onclick="switchAuth('signup')">직원 가입</button>
+    </div>
+
+    <div id="formLogin">
+      <label>이메일</label><input id="liEmail" type="email" autocomplete="username">
+      <label>비밀번호</label><input id="liPw" type="password" autocomplete="current-password"
+        onkeydown="if(event.key==='Enter')doLogin()">
+      <button class="pill wide" id="btnLogin" onclick="doLogin()">로그인</button>
+    </div>
+
+    <div id="formSignup" class="hide">
+      <label>이름</label><input id="suName">
+      <label>기관 가입코드</label><input id="suCode" placeholder="관리자에게 받은 코드" style="text-transform:uppercase">
+      <label>이메일</label><input id="suEmail" type="email" autocomplete="username">
+      <label>비밀번호 <span style="font-weight:400;color:var(--muted48)">(6자 이상)</span></label>
+      <input id="suPw" type="password" autocomplete="new-password">
+      <button class="pill wide" id="btnSignup" onclick="doSignup()">가입 신청</button>
+      <div class="auth-note">가입 후 기관 관리자의 승인이 필요합니다.<br>
+        코드가 없다면 <a class="linkbtn" onclick="switchAuth('org')">기관을 새로 등록</a>하세요.</div>
+    </div>
+
+    <div id="formOrg" class="hide">
+      <label>기관 이름</label><input id="orgName" placeholder="예: 공주시정신건강복지센터">
+      <label>관리자 이름</label><input id="orgAdmin">
+      <label>이메일</label><input id="orgEmail" type="email">
+      <label>비밀번호 <span style="font-weight:400;color:var(--muted48)">(6자 이상)</span></label>
+      <input id="orgPw" type="password">
+      <button class="pill wide" id="btnOrg" onclick="doCreateOrg()">기관 등록</button>
+      <div class="auth-note">등록하면 가입코드가 발급되고, 등록자가 관리자가 됩니다.<br>
+        <a class="linkbtn" onclick="switchAuth('login')">로그인으로 돌아가기</a></div>
+    </div>
+
+    <div class="auth-err" id="authMsg"></div>
+    <div class="auth-note" style="margin-top:16px">가계도 앱과 같은 계정을 사용합니다. 이미 가계도에 가입했다면 그 계정으로 로그인하세요.</div>
   </div>
 </div>
 
-<!-- ============ 로그인 ============ -->
-<div id="scrLogin" class="auth-wrap hide">
-  <div class="auth-box">
-    <h1>사례관리 기록지</h1>
-    <p class="sub">공주시정신건강복지센터</p>
-    <label>아이디</label><input id="liId" autocomplete="username">
-    <label>비밀번호</label><input id="liPw" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
-    <label>센터 암호구절</label><input id="liKey" type="password" placeholder="이름 복호화에 필요" onkeydown="if(event.key==='Enter')doLogin()">
-    <div class="auth-err" id="liErr"></div>
-    <button class="pill wide" id="liBtn" onclick="doLogin()">로그인</button>
-    <div class="auth-note">보안을 위해 새로고침 시 재로그인이 필요합니다. 암호화 키는 브라우저 메모리에만 유지됩니다.</div>
+<!-- ============ 승인 대기 ============ -->
+<div id="scrPending" class="auth-wrap hide">
+  <div class="auth-box" style="text-align:center">
+    <h1 style="font-size:22px">승인 대기 중</h1>
+    <p class="sub" style="margin-top:10px"><b id="pendOrg">—</b> 관리자가 계정을 승인하면<br>바로 이용할 수 있습니다.</p>
+    <button class="pill gray wide" onclick="doLogout()">다른 계정으로 로그인</button>
+  </div>
+</div>
+
+<!-- ============ PIN ============ -->
+<div id="scrPin" class="auth-wrap hide">
+  <div class="auth-box" style="text-align:center">
+    <h1 style="font-size:22px" id="pinTitle">PIN 입력</h1>
+    <p class="sub" id="pinDesc" style="margin-top:8px"></p>
+    <div class="pindots" id="pinDots"></div>
+    <div class="pinpad">
+      <button onclick="pinKey('1')">1</button><button onclick="pinKey('2')">2</button><button onclick="pinKey('3')">3</button>
+      <button onclick="pinKey('4')">4</button><button onclick="pinKey('5')">5</button><button onclick="pinKey('6')">6</button>
+      <button onclick="pinKey('7')">7</button><button onclick="pinKey('8')">8</button><button onclick="pinKey('9')">9</button>
+      <button class="blank"></button><button onclick="pinKey('0')">0</button><button onclick="pinDel()">←</button>
+    </div>
+    <button class="linkbtn" onclick="doLogout()" style="margin-top:18px">로그아웃</button>
   </div>
 </div>
 
@@ -59,8 +99,9 @@
   <div class="subnav">
     <div class="cat">사례 목록<small id="listCount"></small></div>
     <span class="sp"></span>
-    <button class="nlink" id="btnAdmin" onclick="openAdmin()">계정 관리</button>
-    <button class="nlink" onclick="logout()">로그아웃</button>
+    <button class="nlink" id="btnAdmin" onclick="openAdmin()">기관 관리</button>
+    <button class="nlink" onclick="openPinChange()">PIN 변경</button>
+    <button class="nlink" onclick="doLogout()">로그아웃</button>
     <button class="pill" onclick="openNewCase()">＋ 새 사례</button>
   </div>
   <div class="screen">

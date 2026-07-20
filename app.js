@@ -33,16 +33,17 @@ function renderList(){
   const q=($('q').value||'').toLowerCase();
   const arr = Object.entries(CASES)
     .filter(([,c])=>c.status!=='deleted')
-    .filter(([,c])=>!q || (c.caseNo||'').toLowerCase().includes(q) || (c._name||'').toLowerCase().includes(q) || (c.assignedTo||'').toLowerCase().includes(q))
+    .filter(([,c])=>canSee(c))
+    .filter(([,c])=>!q || (c.caseNo||'').toLowerCase().includes(q) || (c.title||'').toLowerCase().includes(q) || (c.ownerName||'').toLowerCase().includes(q))
     .sort((a,b)=>(b[1].updatedAt||0)-(a[1].updatedAt||0));
   $('listCount').textContent = arr.length+'건';
   renderKPI();
   $('caseList').innerHTML = arr.length ? arr.map(([cid,c])=>{
-    const p=progressOf(c);
+    const p = (c.s1 ? progressOf(c) : (c.recProgress||0));
     return `<div class="gc" onclick="openCase('${cid}')">
-      <span class="no">${esc(c.caseNo)}</span>
-      <span class="nm">${esc(c._name)}</span>
-      <span class="mt">담당 ${esc(c.assignedTo||'-')} · ${c.updatedAt?new Date(c.updatedAt).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'}):''} 수정</span>
+      <span class="no">${esc(c.caseNo||'번호없음')}${c.visibility==='private'?' 🔒':''}</span>
+      <span class="nm">${esc(c.title||'(제목 없음)')}</span>
+      <span class="mt">${esc(c.ownerName||'-')} · ${c.updatedAt?new Date(c.updatedAt).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'}):''} 수정</span>
       <div class="pr"><i style="width:${p}%"></i></div>
       <div class="foot"><span class="lk">기록 열기 ›</span><button class="del" onclick="event.stopPropagation();delCase('${cid}')">삭제</button></div>
     </div>`;
@@ -53,20 +54,20 @@ function renderList(){
 // PC 화면 상단 현황 지표 (모바일에서는 CSS로 숨김)
 function renderKPI(){
   const el = $('kpiBar'); if(!el) return;
-  const all = Object.entries(CASES).filter(([,c])=>c.status!=='deleted').map(([,c])=>c);
+  const all = Object.entries(CASES).filter(([,c])=>c.status!=='deleted' && canSee(c)).map(([,c])=>c);
   const now = new Date(), ym = now.getFullYear()+'-'+now.getMonth();
   const newThisMonth = all.filter(c=>{
     if(!c.createdAt) return false;
     const d = new Date(c.createdAt);
     return d.getFullYear()+'-'+d.getMonth() === ym;
   }).length;
-  const risk = all.filter(c=>c.s3 && c.s3.harmThought==='유').length;
-  const incomplete = all.filter(c=>progressOf(c) < 100).length;
+  const mine = all.filter(c=>c.ownerUid===ME.uid).length;
+  const incomplete = all.filter(c=>(c.s1?progressOf(c):(c.recProgress||0)) < 100).length;
   const kpis = [
     {n:all.length, t:'전체 사례'},
     {n:newThisMonth, t:'이번 달 신규'},
-    {n:risk, t:"자타해사고 '유'", warn:risk>0},
-    {n:incomplete, t:'미완성 기록'}
+    {n:mine, t:'내 담당'},
+    {n:incomplete, t:'미완성 기록', warn:incomplete>0}
   ];
   el.innerHTML = kpis.map(k=>`<div class="k${k.warn?' warn':''}"><div class="n">${k.n}</div><div class="t">${k.t}</div></div>`).join('');
 }
@@ -78,33 +79,52 @@ function nextCaseNo(){
 }
 
 function openNewCase(){
-  modal(`<h3>새 사례 등록</h3>
+  modal(`<h3>새 사례</h3>
+    <p style="font-size:13px;color:var(--muted48);margin-bottom:4px">가계도 앱과 공유되는 케이스입니다.</p>
+    <label>대상자 / 케이스 이름</label><input id="ncTitle" placeholder="예: 김○수">
     <label>사례번호</label><input id="ncNo" value="${nextCaseNo()}">
-    <label>이름 <span style="font-weight:400;color:var(--muted48)">(암호화되어 저장됩니다 🔒)</span></label><input id="ncName">
-    <label>담당자</label><input id="ncAssign" value="${esc(ME.name)}">
+    <label>공개범위</label>
+    <div class="chips" id="ncVis" style="margin-top:2px">
+      <button class="chip on" data-v="private" onclick="pickVis(this)">🔒 비공개</button>
+      <button class="chip" data-v="org" onclick="pickVis(this)">👥 기관 공유</button>
+    </div>
+    <p style="font-size:12px;color:var(--muted48);margin-top:8px;line-height:1.55">
+      비공개는 나와 기관 관리자만 볼 수 있습니다. 나중에 바꿀 수 있습니다.</p>
     <div style="display:flex;gap:8px;margin-top:20px">
       <button class="pill gray" style="flex:1" onclick="closeModal()">취소</button>
       <button class="pill" style="flex:1" onclick="createCase()">등록</button>
     </div>`);
 }
+function pickVis(btn){
+  document.querySelectorAll('#ncVis .chip').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+}
 
 async function createCase(){
-  const no=$('ncNo').value.trim(), nm=$('ncName').value.trim(), as=$('ncAssign').value.trim();
-  if(!no||!nm){ toast('사례번호와 이름을 입력하세요'); return; }
+  const title=$('ncTitle').value.trim(), no=$('ncNo').value.trim();
+  const visEl=document.querySelector('#ncVis .chip.on');
+  const visibility=visEl?visEl.getAttribute('data-v'):'private';
+  if(!title){ toast('대상자 이름을 입력하세요'); return; }
   const cid='c'+Date.now();
-  await db.ref('cases/'+cid).set({
-    caseNo:no, nameEnc:await encText(nm), assignedTo:as, status:'active',
-    s1:{consultDate:new Date().toISOString().slice(0,10), writer:ME.name}, s2:{}, s3:{},
-    createdAt:Date.now(), updatedAt:Date.now(), updatedBy:ME.name
+  const now=Date.now();
+  await db.ref(casePath()+'/'+cid).set({
+    title, caseNo:no, visibility,
+    ownerUid:ME.uid, ownerName:ME.name,      // 규칙상 생성 시 ownerUid 필수
+    recProgress:0,                            // 목록 진행률 표시용 (민감정보 아님)
+    createdAt:now, updatedAt:now
+  });
+  await db.ref(recordPath(cid)).set({
+    s1:{consultDate:new Date().toISOString().slice(0,10)}, s2:{}, s3:{},
+    updatedAt:now, updatedBy:ME.name
   });
   closeModal(); toast('사례가 등록되었습니다');
-  setTimeout(()=>openCase(cid),300);
+  setTimeout(()=>openCase(cid),400);
 }
 
 function delCase(cid){
-  if(!confirm(`[${CASES[cid].caseNo}] 사례를 삭제할까요? (휴지통 이동, 관리자가 DB에서 복구 가능)`)) return;
-  db.ref('cases/'+cid+'/status').set('deleted');
-  db.ref('cases/'+cid+'/updatedAt').set(Date.now());
+  const c=CASES[cid];
+  if(!confirm(`[${c.caseNo||''} ${c.title||''}] 사례를 삭제할까요?\n(가계도 앱에서도 사라집니다. 휴지통 이동이라 관리자가 복구 가능)`)) return;
+  db.ref(casePath()+'/'+cid).update({status:'deleted', updatedAt:Date.now()});
   toast('삭제되었습니다');
 }
 
@@ -113,9 +133,20 @@ function delCase(cid){
 ================================================================ */
 const TABNAMES=['인적','병력','MSE','요약'];
 
-function openCase(cid){
+async function openCase(cid){
   CUR=cid; CURTAB=0; dirty=false;
-  $('edTitle').innerHTML=`${esc(CASES[cid].caseNo)}<small>${esc(CASES[cid]._name)} · ${esc(CASES[cid].assignedTo||'-')}</small>`;
+  // 기록은 민감정보라 목록에서 일괄 조회하지 않고, 열람 시점에 개별 로드
+  const c=CASES[cid];
+  if(!c.s1){
+    try{
+      const rec=(await db.ref(recordPath(cid)).once('value')).val()||{};
+      Object.assign(c, {s1:rec.s1||{}, s2:rec.s2||{}, s3:rec.s3||{}, aiSummary:rec.aiSummary||''});
+    }catch(e){
+      toast('이 사례의 기록을 볼 권한이 없습니다');
+      return;
+    }
+  }
+  $('edTitle').innerHTML=`${esc(CASES[cid].title||'')}<small>${esc(CASES[cid].caseNo||'번호없음')} · ${esc(CASES[cid].ownerName||'-')}</small>`;
   show('scrEdit'); renderTabs(); renderTab(); updateSticky();
 }
 function backToList(){ flushSave(); show('scrList'); renderList(); }
@@ -280,7 +311,9 @@ function markDirty(){
 async function flushSave(){
   if(!dirty||!CUR) return;
   const c=CASES[CUR];
-  await db.ref('cases/'+CUR).update({s1:c.s1||{},s2:c.s2||{},s3:c.s3||{},aiSummary:c.aiSummary||'',updatedAt:Date.now(),updatedBy:ME.name});
+  const now=Date.now();
+  await db.ref(recordPath(CUR)).update({s1:c.s1||{},s2:c.s2||{},s3:c.s3||{},aiSummary:c.aiSummary||'',updatedAt:now,updatedBy:ME.name});
+  await db.ref(casePath()+'/'+CUR).update({updatedAt:now, recProgress:progressOf(c)});
   dirty=false; localStorage.removeItem('draft_'+CUR);
   const el=$('saveState'); if(el) el.textContent='자동저장됨';
 }
@@ -292,7 +325,7 @@ function summaryHTML(c){
   return `
     <div class="tile-dark">
       <h3>이 사례의 가계도</h3>
-      <p>가계도 앱 v2.7과 연동 — 사례번호(${esc(c.caseNo)})만 전달되며 이름·개인정보는 전송되지 않습니다.</p>
+      <p>같은 케이스를 가계도 앱에서 엽니다. 계정·기관·케이스가 공유됩니다.</p>
       <span class="lkd" onclick="openGenogram('${esc(c.caseNo)}')">가계도 열기 ›</span>
     </div>
     <div class="grp"><h3>✨ AI 요약 초안</h3>
@@ -336,10 +369,10 @@ function printCase(){
   const row=(th,v)=>`<tr><th>${th}</th><td>${fv(v)||'&nbsp;'}</td></tr>`;
   let h=`<h1>▣ 사례관리 기록지 (S)</h1>
   <table><tr><th>사례번호</th><td>${esc(c.caseNo)}</td><th>작성일</th><td>${fv(d1.consultDate)}</td></tr>
-  <tr><th>작성자</th><td>${esc(c.assignedTo||'')}</td><th>상담구분</th><td>${fv(d1.consultType)}</td></tr>
+  <tr><th>작성자</th><td>${esc(c.ownerName||'')}</td><th>상담구분</th><td>${fv(d1.consultType)}</td></tr>
   <tr><th>정보제공자</th><td colspan="3">${fv(d1.informant)}</td></tr></table>
   <h2>1. 인적사항</h2><table>
-  <tr><th>이름</th><td>${esc(c._name)}</td><th>나이 / 성별</th><td>만 ${fv(d1.age)}세 / ${fv(d1.gender)}</td></tr>
+  <tr><th>이름</th><td>${esc(c.title||'')}</td><th>나이 / 성별</th><td>만 ${fv(d1.age)}세 / ${fv(d1.gender)}</td></tr>
   ${row('의료보장',d1.insurance)}${row('정신장애 등급',d1.mDisability)}${row('기타장애',d1.oDisability)}${row('신장/체중',d1.body)}
   ${row('주소',d1.address)}${row('전화번호',d1.phone)}${row('학력',d1.edu)}${row('결혼',d1.marriage)}${row('종교',d1.religion)}${row('군대력',d1.military)}
   ${row('주거형태',d1.housing)}${row('가족형태',d1.famType)}${row('발병연도/나이',(d1.onsetYear||'')+' / '+(d1.onsetAge||''))}

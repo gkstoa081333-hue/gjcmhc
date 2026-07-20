@@ -1,30 +1,93 @@
-// admin.js — 계정 관리 (관리자 전용)
-/* ================================================================
-   10. 계정 관리 (관리자)  — v1과 동일
-================================================================ */
+// admin.js — 기관 관리 (관리자 전용)
+// 가입 신청 승인 · 구성원 권한 관리 · 가입코드 확인
+// 데이터: orgMembers/{orgId}/{uid} 와 users/{uid} 를 함께 갱신 (가계도 앱과 동일 규격)
+
 async function openAdmin(){
-  const snap=await db.ref('accounts').once('value'); ACCOUNTS=snap.val()||{};
-  modal(`<h3>계정 관리</h3>
-    <div id="acctList">${Object.entries(ACCOUNTS).map(([u,a])=>`
-      <div class="acct-row"><b>${esc(a.name)}</b><span style="color:var(--muted48)">@${esc(a.id)} · ${a.role==='admin'?'관리자':'직원'}</span>
-      <div style="flex:1"></div>${u!==ME.uid?`<button class="nlink" style="color:var(--muted48)" onclick="delAcct('${u}')">삭제</button>`:''}</div>`).join('')}</div>
-    <label>이름</label><input id="naName">
-    <label>아이디</label><input id="naId">
-    <label>초기 비밀번호</label><input id="naPw">
-    <label>권한</label><select id="naRole"><option value="staff">직원</option><option value="admin">관리자</option></select>
-    <div style="display:flex;gap:8px;margin-top:18px">
-      <button class="pill gray" style="flex:1" onclick="closeModal()">닫기</button>
-      <button class="pill" style="flex:1" onclick="addAcct()">계정 추가</button>
-    </div>`);
+  let members={}, joinCode='';
+  try{ members=(await db.ref('orgMembers/'+ME.orgId).once('value')).val()||{}; }
+  catch(e){ toast('구성원 목록을 불러올 수 없습니다 (관리자만 조회 가능)'); }
+  // 가입코드는 관리자만 읽을 수 있는 orgPrivate 에 있습니다
+  try{ joinCode=((await db.ref('orgPrivate/'+ME.orgId).once('value')).val()||{}).joinCode||''; }catch(e){}
+
+  const list=Object.entries(members).sort((a,b)=>(a[1].createdAt||0)-(b[1].createdAt||0));
+  const pending=list.filter(([,m])=>!m.approved);
+  const active =list.filter(([,m])=>m.approved);
+
+  const row=(uid,m,isPending)=>`
+    <div class="acct-row">
+      <div style="flex:1;min-width:0">
+        <b>${esc(m.name||'—')}</b>
+        <span style="color:var(--muted48);font-size:12.5px"> ${esc(m.email||'')}</span>
+        <span class="rolebadge">${m.role==='admin'?'관리자':'직원'}</span>
+      </div>
+      ${isPending
+        ? `<button class="pill" style="padding:5px 12px;font-size:12px" onclick="approveMember('${uid}')">승인</button>
+           <button class="linkbtn" onclick="rejectMember('${uid}')">거절</button>`
+        : (uid===ME.uid ? `<span style="font-size:12px;color:var(--muted48)">나</span>`
+           : `<button class="linkbtn" onclick="toggleRole('${uid}','${m.role}')">${m.role==='admin'?'직원으로':'관리자로'}</button>
+              <button class="linkbtn" onclick="removeMember('${uid}')">삭제</button>`)}
+    </div>`;
+
+  modal(`<h3>기관 관리</h3>
+    <div class="joincode">
+      <span>가입코드</span>
+      <b>${esc(joinCode||'—')}</b>
+      <button class="linkbtn" onclick="copyCode('${esc(joinCode)}')">복사</button>
+    </div>
+    <p style="font-size:12px;color:var(--muted48);margin:6px 0 16px;line-height:1.55">
+      직원에게 이 코드를 알려주면 가입 신청할 수 있습니다. 신청은 아래에서 승인해야 이용 가능합니다.</p>
+
+    <div class="sec-t">가입 신청 ${pending.length?`<span class="cnt">${pending.length}</span>`:''}</div>
+    ${pending.length ? pending.map(([u,m])=>row(u,m,true)).join('')
+      : `<p class="pane-empty" style="padding:6px 0">대기 중인 신청이 없습니다.</p>`}
+
+    <div class="sec-t" style="margin-top:18px">구성원 <span class="cnt">${active.length}</span></div>
+    ${active.map(([u,m])=>row(u,m,false)).join('')}
+
+    <button class="pill gray wide" onclick="closeModal()">닫기</button>`);
 }
-async function addAcct(){
-  const name=$('naName').value.trim(), id=$('naId').value.trim(), pw=$('naPw').value, role=$('naRole').value;
-  if(!name||!id||pw.length<4){toast('입력을 확인하세요 (비밀번호 4자 이상)');return;}
-  if(Object.values(ACCOUNTS).some(a=>a.id===id)){toast('이미 존재하는 아이디입니다');return;}
-  await db.ref('accounts/u'+Date.now()).set({id,pwHash:await sha256(id+':'+pw),name,role,createdAt:Date.now()});
-  toast('계정이 추가되었습니다'); openAdmin();
+
+function copyCode(code){
+  if(!code) return;
+  navigator.clipboard.writeText(code).then(()=>toast('가입코드를 복사했습니다'));
 }
-async function delAcct(u){
-  if(!confirm('이 계정을 삭제할까요?'))return;
-  await db.ref('accounts/'+u).remove(); toast('삭제되었습니다'); openAdmin();
+
+async function approveMember(uid){
+  try{
+    await db.ref('orgMembers/'+ME.orgId+'/'+uid+'/approved').set(true);
+    await db.ref('users/'+uid+'/approved').set(true);
+    toast('승인했습니다');
+  }catch(e){ toast('승인 실패: 권한을 확인하세요'); }
+  openAdmin();
+}
+
+async function rejectMember(uid){
+  if(!confirm('가입 신청을 거절할까요?')) return;
+  try{
+    await db.ref('orgMembers/'+ME.orgId+'/'+uid).remove();
+    await db.ref('users/'+uid+'/approved').set(false);
+    toast('거절했습니다');
+  }catch(e){ toast('처리 실패'); }
+  openAdmin();
+}
+
+async function toggleRole(uid, cur){
+  const next = cur==='admin' ? 'member' : 'admin';
+  if(!confirm(next==='admin' ? '이 직원을 관리자로 지정할까요?' : '관리자 권한을 해제할까요?')) return;
+  try{
+    await db.ref('orgMembers/'+ME.orgId+'/'+uid+'/role').set(next);
+    await db.ref('users/'+uid+'/role').set(next);
+    toast('권한을 변경했습니다');
+  }catch(e){ toast('변경 실패'); }
+  openAdmin();
+}
+
+async function removeMember(uid){
+  if(!confirm('이 구성원을 기관에서 제외할까요?\n(계정 자체는 남으며, 다시 가입 신청할 수 있습니다)')) return;
+  try{
+    await db.ref('orgMembers/'+ME.orgId+'/'+uid).remove();
+    await db.ref('users/'+uid+'/approved').set(false);
+    toast('제외했습니다');
+  }catch(e){ toast('처리 실패'); }
+  openAdmin();
 }

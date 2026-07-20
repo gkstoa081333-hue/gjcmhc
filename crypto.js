@@ -1,30 +1,9 @@
-// crypto.js — AES-256-GCM 암호화 유틸 (PBKDF2 키 유도)
-/* ================================================================
-   1. 암호화 유틸 (PBKDF2 → AES-GCM)  — v1과 동일
-================================================================ */
-let AES_KEY = null;
-const te = new TextEncoder(), td = new TextDecoder();
-const b64 = a => btoa(String.fromCharCode(...new Uint8Array(a)));
-const ub64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
-
-async function deriveKey(pass){
-  const base = await crypto.subtle.importKey('raw', te.encode(pass), 'PBKDF2', false, ['deriveKey']);
-  return crypto.subtle.deriveKey(
-    {name:'PBKDF2', salt: te.encode('gjmhc-case-record-2026'), iterations:150000, hash:'SHA-256'},
-    base, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']);
-}
-async function encText(t){
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv}, AES_KEY, te.encode(t));
-  return {iv:b64(iv), ct:b64(ct)};
-}
-async function decText(o){
-  try{
-    const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv:ub64(o.iv)}, AES_KEY, ub64(o.ct));
-    return td.decode(pt);
-  }catch(e){ return null; }
-}
-async function sha256(s){
-  const h = await crypto.subtle.digest('SHA-256', te.encode(s));
-  return b64(h);
-}
+// crypto.js — (이 파일은 현재 비어 있습니다)
+//
+// v2까지 사용하던 "센터 암호구절 + AES 이름 암호화"는 통합 구조에서 제거되었습니다.
+// 대신 다음 세 가지가 실제 접근 통제를 담당합니다.
+//   1) Firebase Auth 정식 계정 (이메일/비밀번호)
+//   2) 기관 단위 데이터 격리 + 관리자 승인제
+//   3) 케이스별 공개범위(비공개/기관공유) + PIN 잠금
+//
+// PIN 해시는 auth.js 의 pinHash() 에 있습니다.
