@@ -36,6 +36,7 @@ function renderList(){
     .filter(([,c])=>!q || (c.caseNo||'').toLowerCase().includes(q) || (c._name||'').toLowerCase().includes(q) || (c.assignedTo||'').toLowerCase().includes(q))
     .sort((a,b)=>(b[1].updatedAt||0)-(a[1].updatedAt||0));
   $('listCount').textContent = arr.length+'건';
+  renderKPI();
   $('caseList').innerHTML = arr.length ? arr.map(([cid,c])=>{
     const p=progressOf(c);
     return `<div class="gc" onclick="openCase('${cid}')">
@@ -47,6 +48,27 @@ function renderList(){
     </div>`;
   }).join('')
   : `<div class="empty" style="grid-column:1/-1">등록된 사례가 없습니다. ‘＋ 새 사례’로 시작하세요.</div>`;
+}
+
+// PC 화면 상단 현황 지표 (모바일에서는 CSS로 숨김)
+function renderKPI(){
+  const el = $('kpiBar'); if(!el) return;
+  const all = Object.entries(CASES).filter(([,c])=>c.status!=='deleted').map(([,c])=>c);
+  const now = new Date(), ym = now.getFullYear()+'-'+now.getMonth();
+  const newThisMonth = all.filter(c=>{
+    if(!c.createdAt) return false;
+    const d = new Date(c.createdAt);
+    return d.getFullYear()+'-'+d.getMonth() === ym;
+  }).length;
+  const risk = all.filter(c=>c.s3 && c.s3.harmThought==='유').length;
+  const incomplete = all.filter(c=>progressOf(c) < 100).length;
+  const kpis = [
+    {n:all.length, t:'전체 사례'},
+    {n:newThisMonth, t:'이번 달 신규'},
+    {n:risk, t:"자타해사고 '유'", warn:risk>0},
+    {n:incomplete, t:'미완성 기록'}
+  ];
+  el.innerHTML = kpis.map(k=>`<div class="k${k.warn?' warn':''}"><div class="n">${k.n}</div><div class="t">${k.t}</div></div>`).join('');
 }
 
 function nextCaseNo(){
@@ -130,10 +152,54 @@ function renderTab(){
     return `<div class="grp"><h3>${g.g}${g.tip?tipBtn(g.tip):''}</h3>${g.items.map(f=>`<div class="subrow">${fieldHTML('s3',f,c.s3)}</div>`).join('')}</div>`;
   }).join('');
   if(CURTAB===3) $('tabBody').innerHTML=summaryHTML(c);
+  renderSidePanes();
 }
 
-function tipBtn(key){ return ` <button class="tipbtn" onclick="event.stopPropagation();showTip('${key}')">상담 팁 ›</button>`; }
-function showTip(key){ const t=TIPS[key]; modal(`<h3>💡 상담 팁 — ${esc(t.t)}</h3><p style="font-size:14px;color:var(--muted80);line-height:1.7">${esc(t.b)}</p><button class="pill gray wide" onclick="closeModal()">닫기</button>`); }
+// ── PC 3컬럼 레이아웃용: 좌측 목차 + 우측 상담 팁 패널 (모바일에서는 CSS로 숨김)
+function isDesktop(){ return window.matchMedia('(min-width:1024px)').matches; }
+
+function renderSidePanes(){
+  const toc=$('tocPane'), tip=$('tipPane');
+  if(!toc||!tip) return;
+
+  // 현재 탭에 그려진 그룹 제목을 모아 목차 생성
+  const heads=[...document.querySelectorAll('#tabBody .grp > h3')];
+  heads.forEach((h,i)=>h.id='grp'+i);
+  toc.innerHTML = heads.length
+    ? `<p class="pane-t">이 섹션</p>` + heads.map((h,i)=>{
+        const t=(h.childNodes[0] && h.childNodes[0].textContent || '').trim() || `항목 ${i+1}`;
+        return `<button class="toc-it" onclick="gotoGrp(${i})">${esc(t)}</button>`;
+      }).join('')
+    : '';
+
+  // 현재 탭에 등장하는 상담 팁을 모두 패널에 나열
+  const keys=[...new Set([...document.querySelectorAll('#tabBody .tipbtn')]
+    .map(b=>b.getAttribute('data-tip')).filter(k=>k && TIPS[k]))];
+  tip.innerHTML = `<p class="pane-t">상담 팁</p>` + (keys.length
+    ? keys.map(k=>`<div class="tipcard" id="tip_${k}"><h5>${esc(TIPS[k].t)}</h5><p>${esc(TIPS[k].b)}</p></div>`).join('')
+    : `<p class="pane-empty">이 섹션에는 등록된 상담 팁이 없습니다.</p>`);
+}
+
+function gotoGrp(i){
+  const el=document.getElementById('grp'+i);
+  if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
+  document.querySelectorAll('.toc-it').forEach((b,j)=>b.classList.toggle('on',j===i));
+}
+
+function tipBtn(key){ return ` <button class="tipbtn" data-tip="${key}" onclick="event.stopPropagation();showTip('${key}')">상담 팁 ›</button>`; }
+
+function showTip(key){
+  const t=TIPS[key]; if(!t) return;
+  // PC: 우측 패널의 해당 팁으로 이동·강조 / 모바일: 기존 팝업
+  const card = document.getElementById('tip_'+key);
+  if(isDesktop() && card){
+    document.querySelectorAll('.tipcard.hl').forEach(x=>x.classList.remove('hl'));
+    card.classList.add('hl');
+    card.scrollIntoView({behavior:'smooth',block:'center'});
+    return;
+  }
+  modal(`<h3>💡 상담 팁 — ${esc(t.t)}</h3><p style="font-size:14px;color:var(--muted80);line-height:1.7">${esc(t.b)}</p><button class="pill gray wide" onclick="closeModal()">닫기</button>`);
+}
 
 function chipLabel(on,o){ return on?('✓ '+esc(o)):esc(o); }
 

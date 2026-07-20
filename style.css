@@ -134,3 +134,96 @@ textarea{resize:vertical;min-height:76px}
   #printArea th,#printArea td{border:1px solid #555;padding:4pt 6pt;font-size:9.5pt;text-align:left;vertical-align:top}
   #printArea th{background:#efefef;width:110pt;font-weight:700}
 }
+
+/* ================================================================
+   PC 웹 레이아웃 — 1024px 이상에서만 적용
+   목록: 대시보드형 표(시안 D) / 편집: 3컬럼 목차·입력·상담팁(시안 C)
+   ※ 아래 요소들은 모바일에서 기본 숨김
+================================================================ */
+.kpi, .listhead, .tocpane, .tippane{ display:none; }
+
+@media (min-width:1024px){
+
+  /* ── 공통 폭 확장 ── */
+  .screen{ max-width:1200px; padding:24px 24px 120px; }
+  .gnav{ padding:0 28px; }
+  .subnav{ padding:0 28px; }
+
+  /* ── 목록: 현황 지표 (시안 D) ── */
+  .kpi{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:18px; }
+  .kpi .k{ background:var(--canvas); border:1px solid var(--hairline); border-radius:18px; padding:18px 20px; }
+  .kpi .k .n{ font-size:32px; font-weight:600; letter-spacing:-.6px; line-height:1.1; }
+  .kpi .k .t{ font-size:13px; color:var(--muted48); margin-top:3px; }
+  .kpi .k.warn .n{ color:var(--red); }
+
+  /* ── 목록: 표 형태 ── */
+  .listhead{
+    display:grid; grid-template-columns:130px 1fr 190px 150px 130px; gap:16px;
+    padding:12px 22px; font-size:12px; font-weight:600; color:var(--muted48);
+    background:var(--canvas); border:1px solid var(--hairline);
+    border-bottom:none; border-radius:18px 18px 0 0;
+  }
+  #caseList{
+    display:block; background:var(--canvas);
+    border:1px solid var(--hairline); border-radius:0 0 18px 18px; overflow:hidden;
+  }
+  #caseList .gc{
+    display:grid; grid-template-columns:130px 1fr 190px 150px 130px; gap:16px;
+    align-items:center; padding:14px 22px;
+    border:none; border-top:1px solid var(--divider); border-radius:0;
+  }
+  #caseList .gc:hover{ background:var(--parchment); border-color:var(--divider); }
+  #caseList .gc .nm{ font-size:15px; margin:0; }
+  #caseList .gc .mt{ margin:0; }
+  #caseList .gc .pr{ margin:0; }
+  #caseList .gc .foot{ margin:0; justify-content:flex-end; gap:10px; }
+  #caseList .empty{ border:none; border-radius:0; }
+
+  /* ── 편집: 3컬럼 (목차 · 입력 · 상담 팁) ── */
+  .editwrap{
+    display:grid; grid-template-columns:186px minmax(0,1fr) 300px;
+    align-items:start; max-width:1400px; margin:0 auto;
+  }
+  #scrEdit .screen{ max-width:none; padding:24px 22px 120px; }
+
+  .tocpane, .tippane{
+    display:block; position:sticky; top:104px;
+    max-height:calc(100vh - 190px); overflow-y:auto; padding:24px 14px;
+  }
+  .tocpane{ border-right:1px solid var(--hairline); }
+  .tippane{ border-left:1px solid var(--hairline); }
+  .pane-t{
+    font-size:11px; font-weight:600; color:var(--muted48);
+    letter-spacing:0; margin-bottom:10px; padding:0 6px;
+  }
+  .pane-empty{ font-size:12.5px; color:var(--muted48); padding:0 6px; line-height:1.6; }
+
+  .toc-it{
+    display:block; width:100%; text-align:left;
+    font-size:12.5px; color:var(--muted80); padding:8px 10px;
+    border-left:2px solid transparent; border-radius:0 8px 8px 0; line-height:1.4;
+  }
+  .toc-it:active{ transform:none; }
+  .toc-it:hover{ background:var(--parchment); }
+  .toc-it.on{ color:var(--blue); font-weight:600; border-left-color:var(--blue); background:var(--parchment); }
+
+  .tipcard{
+    background:var(--parchment); border-radius:14px;
+    padding:14px 15px; margin-bottom:10px; transition:box-shadow .2s, background .2s;
+  }
+  .tipcard h5{ font-size:12.5px; font-weight:600; color:var(--blue); margin-bottom:6px; }
+  .tipcard p{ font-size:12px; line-height:1.7; color:var(--muted80); }
+  .tipcard.hl{ background:#e8f2fd; box-shadow:0 0 0 2px var(--blue-focus); }
+
+  /* PC에서는 본문 팁 버튼이 우측 패널을 가리키므로 표기 변경 */
+  .tipbtn::after{ content:' →'; }
+
+  /* ── 편집: 입력 영역 여유 ── */
+  .grp{ padding:24px; }
+  .sticky{ padding:12px 28px; }
+}
+
+/* 넓은 모니터: 인적사항 3단 배치 */
+@media (min-width:1500px){
+  .fgrid{ grid-template-columns:repeat(3,1fr); }
+}

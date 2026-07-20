@@ -64,7 +64,9 @@
     <button class="pill" onclick="openNewCase()">＋ 새 사례</button>
   </div>
   <div class="screen">
+    <div class="kpi" id="kpiBar"></div>
     <div class="search">🔍<input id="q" placeholder="사례번호 · 이름 · 담당자 검색" oninput="renderList()"></div>
+    <div class="listhead"><span>사례번호</span><span>이름</span><span>담당자 · 수정일</span><span>진행률</span><span>작업</span></div>
     <div class="grid" id="caseList"></div>
   </div>
 </div>
@@ -77,7 +79,11 @@
     <span class="sp"></span>
     <div class="tabstrip" id="tabs"></div>
   </div>
-  <div class="screen" id="tabBody"></div>
+  <div class="editwrap">
+    <aside class="tocpane" id="tocPane"></aside>
+    <div class="screen" id="tabBody"></div>
+    <aside class="tippane" id="tipPane"></aside>
+  </div>
   <div class="sticky" id="stickyBar">
     <span class="state" id="stState"></span>
     <span class="sp"></span>
