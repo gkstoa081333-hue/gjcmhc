@@ -134,15 +134,18 @@
 
 <!-- ============ 편집 화면 (시안 B) ============ -->
 <div id="scrEdit" class="hide">
-  <div class="subnav">
+  <div class="subnav ednav">
     <button class="nlink" onclick="backToList()">‹ 목록</button>
-    <div class="cat" id="edTitle" style="font-size:16px"></div>
+    <div class="cat" id="edTitle" style="font-size:15px"></div>
     <span class="sp"></span>
-    <button class="nlink" onclick="openCaseSettings()">사례 설정</button>
+    <button class="nlink hide-narrow" onclick="openCaseSettings()">사례 설정</button>
+    <button class="ic-btn show-narrow" onclick="openCaseSettings()" aria-label="사례 설정">⚙</button>
+  </div>
+  <div class="subnav segbar">
     <div class="segment" id="segMode">
-      <button data-mode="mse" onclick="switchMode('mse')">사례관리 기록</button>
-      <button data-mode="gs"  onclick="switchMode('gs')">일반상담</button>
-      <button data-mode="is"  onclick="switchMode('is')">개별상담</button>
+      <button data-mode="mse" onclick="switchMode('mse')"><span class="lg">사례관리 기록</span><span class="sm">MSE</span></button>
+      <button data-mode="gs"  onclick="switchMode('gs')"><span class="lg">일반상담</span><span class="sm">일반</span></button>
+      <button data-mode="is"  onclick="switchMode('is')"><span class="lg">개별상담</span><span class="sm">개별</span></button>
     </div>
   </div>
   <div class="subnav sub2 hide" id="tabsBar">
@@ -157,7 +160,7 @@
     <span class="state" id="stState"></span>
     <span class="sp"></span>
     <button class="pill gray" id="btnPrev" onclick="stepTab(-1)">이전</button>
-    <button class="pill" id="btnNext" onclick="stepTab(1)">다음 섹션</button>
+    <button class="pill" id="btnNext" onclick="stepTab(1)">다음</button>
   </div>
 </div>
 
