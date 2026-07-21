@@ -267,3 +267,22 @@ textarea{resize:vertical;min-height:76px}
   border-radius:999px; padding:1px 8px; margin-left:6px;
 }
 .acct-row{ gap:10px; }
+
+/* ================= 상단 세그먼트 (사례관리·일반·개별) ================= */
+.segment{ display:flex; gap:3px; background:#e9eeec; border-radius:10px; padding:3px; }
+.segment button{
+  padding:6px 14px; font-size:13px; font-weight:500;
+  color:var(--muted48); border-radius:8px; letter-spacing:-.2px;
+}
+.segment button.on{
+  background:var(--canvas); color:var(--ink); font-weight:600;
+  box-shadow:0 1px 2px rgba(0,0,0,.06);
+}
+.subnav.sub2{ top:96px; border-bottom:1px solid rgba(0,0,0,.05); }
+
+@media (max-width:600px){
+  .segment button{ padding:6px 10px; font-size:12px; }
+  .segment button:not(.on){ padding:6px 8px; }
+}
+
+@media print{ .pgbreak{ page-break-before: always; } }
