@@ -311,9 +311,22 @@ function canSee(c){
 }
 
 function enterApp(){
-  $('gnavWho').textContent = `${ME.name} 님 · ${ORG.name||''}`;
-  const ab=$('btnAdmin'); if(ab) ab.style.display = ME.role==='admin' ? '' : 'none';
+  const who = `${ME.name} 님 · ${ORG.name||''}`;
+  $('gnavWho').textContent = who;
+  const dw = $('drawerWho'); if(dw) dw.textContent = who;
+  // 관리자 전용 메뉴는 서랍에서 표시/숨김
+  const da=$('drawerAdmin'); if(da) da.style.display = ME.role==='admin' ? '' : 'none';
+  const dt=$('drawerTips');  if(dt) dt.style.display = ME.role==='admin' ? '' : 'none';
   markNavLinks();
+
+  // 기관별 상담 팁 구독 (관리자가 편집하면 모든 직원에게 즉시 반영)
+  db.ref('orgTips/'+ME.orgId).on('value', snap=>{
+    const custom=snap.val()||{};
+    // TIPS 는 schema.js 의 기본값. 기관 편집본이 있으면 덮어씀.
+    Object.keys(custom).forEach(k=>{ if(TIPS[k]) TIPS[k]=custom[k]; });
+    // 현재 편집 화면이 열려 있으면 팁 패널 재렌더
+    if(typeof renderSidePanes==='function' && !$('scrEdit').classList.contains('hide')) renderSidePanes();
+  });
 
   db.ref(casePath()).on('value', snap=>{
     const raw=snap.val()||{};
@@ -329,3 +342,23 @@ function enterApp(){
 ================================================================ */
 function modal(html){ $('modalHost').innerHTML=`<div class="modal-bg" onclick="if(event.target===this)closeModal()"><div class="modal">${html}</div></div>`; }
 function closeModal(){ $('modalHost').innerHTML=''; }
+
+
+/* ================================================================
+   좌측 서랍 (모바일 메뉴)
+================================================================ */
+function toggleDrawer(){
+  const d=$('drawer'), bg=$('drawerBg');
+  const open = !d.classList.contains('open');
+  d.classList.toggle('open', open);
+  bg.classList.toggle('open', open);
+  document.body.style.overflow = open ? 'hidden' : '';
+}
+function drawerGo(k){
+  toggleDrawer();
+  openApp(k);
+}
+function drawerAct(fnName){
+  toggleDrawer();
+  const fn = window[fnName]; if(typeof fn==='function') fn();
+}

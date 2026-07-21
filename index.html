@@ -13,16 +13,39 @@
 <body>
 
 
-<!-- 글로벌 내비 — 통합 앱 뼈대 (시안 E) -->
+<!-- 글로벌 내비: PC는 상단바, 모바일은 좌측 서랍 -->
 <nav class="gnav" id="gnav">
+  <button class="hamb" onclick="toggleDrawer()" aria-label="메뉴 열기">☰</button>
   <span class="logo"> 공주시정신건강복지센터</span>
-  <a class="on">사례기록</a>
-  <a data-app="genogram" onclick="openApp('genogram')">가계도</a>
-  <a data-app="schedule" onclick="openApp('schedule')">일정</a>
-  <a data-app="inventory" onclick="openApp('inventory')">비품</a>
+  <a class="on pc-only">사례기록</a>
+  <a class="pc-only" data-app="genogram" onclick="openApp('genogram')">가계도</a>
+  <a class="pc-only" data-app="schedule" onclick="openApp('schedule')">일정</a>
+  <a class="pc-only" data-app="inventory" onclick="openApp('inventory')">비품</a>
   <span class="sp"></span>
-  <span class="who" id="gnavWho"></span>
+  <span class="who pc-only" id="gnavWho"></span>
 </nav>
+
+<!-- 좌측 서랍 (모바일에서만 실사용) -->
+<div class="drawer-bg" id="drawerBg" onclick="toggleDrawer()"></div>
+<aside class="drawer" id="drawer">
+  <div class="drawer-head">
+    <div class="drawer-org">공주시정신건강복지센터</div>
+    <div class="drawer-who" id="drawerWho">—</div>
+    <button class="drawer-close" onclick="toggleDrawer()" aria-label="닫기">×</button>
+  </div>
+
+  <div class="drawer-sec">앱 전환</div>
+  <button class="drawer-it on"><span class="ic">📋</span>사례기록</button>
+  <button class="drawer-it" data-app="genogram" onclick="drawerGo('genogram')"><span class="ic">🌳</span>가계도</button>
+  <button class="drawer-it" data-app="schedule" onclick="drawerGo('schedule')"><span class="ic">🗓</span>일정</button>
+  <button class="drawer-it" data-app="inventory" onclick="drawerGo('inventory')"><span class="ic">📦</span>비품</button>
+
+  <div class="drawer-sec">관리</div>
+  <button class="drawer-it" id="drawerAdmin" onclick="drawerAct('openAdmin')"><span class="ic">👥</span>기관 관리</button>
+  <button class="drawer-it" id="drawerTips" onclick="drawerAct('openTipsEditor')"><span class="ic">💡</span>상담 팁 편집</button>
+  <button class="drawer-it" onclick="drawerAct('openPinChange')"><span class="ic">🔒</span>PIN 변경</button>
+  <button class="drawer-it" onclick="drawerAct('doLogout')"><span class="ic">🚪</span>로그아웃</button>
+</aside>
 
 <!-- ============ 로그인 / 가입 / 기관등록 ============ -->
 <div id="scrAuth" class="auth-wrap hide">
@@ -99,9 +122,6 @@
   <div class="subnav">
     <div class="cat">사례 목록<small id="listCount"></small></div>
     <span class="sp"></span>
-    <button class="nlink" id="btnAdmin" onclick="openAdmin()">기관 관리</button>
-    <button class="nlink" onclick="openPinChange()">PIN 변경</button>
-    <button class="nlink" onclick="doLogout()">로그아웃</button>
     <button class="pill" onclick="openNewCase()">＋ 새 사례</button>
   </div>
   <div class="screen">
@@ -118,6 +138,7 @@
     <button class="nlink" onclick="backToList()">‹ 목록</button>
     <div class="cat" id="edTitle" style="font-size:16px"></div>
     <span class="sp"></span>
+    <button class="nlink" onclick="openCaseSettings()">사례 설정</button>
     <div class="segment" id="segMode">
       <button data-mode="mse" onclick="switchMode('mse')">사례관리 기록</button>
       <button data-mode="gs"  onclick="switchMode('gs')">일반상담</button>

@@ -72,6 +72,84 @@ function renderKPI(){
   el.innerHTML = kpis.map(k=>`<div class="k${k.warn?' warn':''}"><div class="n">${k.n}</div><div class="t">${k.t}</div></div>`).join('');
 }
 
+
+/* ================================================================
+   상담 주기 (schedule)
+   케이스 데이터: c.schedule = { gs:{freq,customText,nextDue}, is:{...} }
+   freq: 'weekly'|'biweekly'|'monthly'|'m2'|'custom'|'none'
+================================================================ */
+const FREQS = [
+  {v:'none',     l:'사용 안 함',  days:0},
+  {v:'weekly',   l:'매주',       days:7},
+  {v:'biweekly', l:'격주',       days:14},
+  {v:'m2',       l:'월 2회',     days:15},
+  {v:'monthly',  l:'월 1회',     days:30},
+  {v:'custom',   l:'기타(수동)', days:0},
+];
+function freqLabel(v){ const f=FREQS.find(x=>x.v===v); return f?f.l:'—'; }
+function freqDays(v){ const f=FREQS.find(x=>x.v===v); return f?f.days:0; }
+function freqChipsHTML(cur){
+  return FREQS.map(f=>`<button class="chip ${cur===f.v?'on':''}" data-v="${f.v}" onclick="pickFreq(this)">${f.l}</button>`).join('');
+}
+
+// 화면에서 선택된 주기 읽기 (프리픽스: 'gsFreq' 또는 'isFreq')
+function readFreq(prefix){
+  const el = document.querySelector(`.freq[data-target="${prefix}"] .chip.on`);
+  const v = el ? el.getAttribute('data-v') : 'none';
+  const custom = ($(prefix+'Custom')||{}).value || '';
+  return { freq:v, customText:v==='custom'?custom:'', nextDue:'' };
+}
+
+function pickFreq(btn){
+  const wrap = btn.closest('.freq');
+  wrap.querySelectorAll('.chip').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  const target = wrap.getAttribute('data-target');
+  const custom = $(target+'Custom');
+  if(custom) custom.classList.toggle('hide', btn.getAttribute('data-v')!=='custom');
+}
+
+// 마지막 회차 날짜로부터 다음 예정일 계산 (수동/사용안함은 sched.nextDue 그대로)
+function nextDueOf(cid, mode){
+  const c=CASES[cid]; if(!c||!c.schedule||!c.schedule[mode]) return '';
+  const sch=c.schedule[mode]; const d=freqDays(sch.freq);
+  if(sch.freq==='custom' || sch.freq==='none') return sch.nextDue||'';
+  const sessions = Object.values(SESSIONS[mode]||{});
+  if(!sessions.length) return sch.nextDue||'';
+  const last = sessions.map(s=>s.date).filter(Boolean).sort().pop();
+  if(!last) return sch.nextDue||'';
+  const dt = new Date(last+'T00:00:00'); dt.setDate(dt.getDate()+d);
+  return dt.toISOString().slice(0,10);
+}
+
+// 회차 저장/삭제 후 케이스의 nextDue 를 갱신
+async function updateNextDue(mode){
+  const cid=CUR; const c=CASES[cid]; if(!c||!c.schedule||!c.schedule[mode]) return;
+  const nd = nextDueOf(cid, mode);
+  c.schedule[mode].nextDue = nd;
+  try{ await db.ref(casePath()+'/'+cid+'/schedule/'+mode+'/nextDue').set(nd); }catch(e){}
+}
+
+// 목록 배지 계산: 예정·지연·후속조치필요
+function badgesOf(c){
+  const out=[];
+  const today = new Date().toISOString().slice(0,10);
+  const in3d = new Date(); in3d.setDate(in3d.getDate()+3);
+  const soon = in3d.toISOString().slice(0,10);
+  ['gs','is'].forEach(mode=>{
+    const sch=c.schedule && c.schedule[mode]; if(!sch||sch.freq==='none') return;
+    // nextDue 가 캐시되어 있으면 그것을, 없으면 규칙상 계산 (열람 전엔 회차정보 없음 → sch.nextDue 위주)
+    const due = sch.nextDue || '';
+    if(!due) return;
+    const label = mode==='gs'?'일반':'개별';
+    if(due < today) out.push({t:`${label} 지연`, k:'danger'});
+    else if(due <= soon) out.push({t:`${label} ${due.slice(5)}`, k:'warn'});
+  });
+  // 후속조치 필요 사례 (recProgress 미완이면서 자타해사고는 기록 열람 전엔 확인 불가 → 케이스 메타 플래그로만)
+  if(c.followUp) out.push({t:'후속조치', k:'danger'});
+  return out;
+}
+
 function nextCaseNo(){
   const yr=new Date().getFullYear();
   const nums=Object.values(CASES).map(c=>{const m=(c.caseNo||'').match(new RegExp(`S-${yr}-(\\d+)`));return m?+m[1]:0;});
@@ -88,8 +166,16 @@ function openNewCase(){
       <button class="chip on" data-v="private" onclick="pickVis(this)">🔒 비공개</button>
       <button class="chip" data-v="org" onclick="pickVis(this)">👥 기관 공유</button>
     </div>
-    <p style="font-size:12px;color:var(--muted48);margin-top:8px;line-height:1.55">
-      비공개는 나와 기관 관리자만 볼 수 있습니다. 나중에 바꿀 수 있습니다.</p>
+    <p style="font-size:12px;color:var(--muted48);margin-top:8px;margin-bottom:14px;line-height:1.55">
+      비공개는 나와 기관 관리자만 볼 수 있습니다.</p>
+
+    <label>일반상담 주기</label>
+    <div class="chips freq" data-target="gsFreq">${freqChipsHTML('none')}</div>
+    <input id="gsFreqCustom" class="hide" placeholder="예: 10일마다 · 다음 예정일" style="margin-top:6px">
+
+    <label>개별상담 주기</label>
+    <div class="chips freq" data-target="isFreq">${freqChipsHTML('none')}</div>
+    <input id="isFreqCustom" class="hide" placeholder="예: 10일마다 · 다음 예정일" style="margin-top:6px">
     <div style="display:flex;gap:8px;margin-top:20px">
       <button class="pill gray" style="flex:1" onclick="closeModal()">취소</button>
       <button class="pill" style="flex:1" onclick="createCase()">등록</button>
@@ -107,10 +193,13 @@ async function createCase(){
   if(!title){ toast('대상자 이름을 입력하세요'); return; }
   const cid='c'+Date.now();
   const now=Date.now();
+  const gsFreq = readFreq('gsFreq');
+  const isFreq = readFreq('isFreq');
   await db.ref(casePath()+'/'+cid).set({
     title, caseNo:no, visibility,
-    ownerUid:ME.uid, ownerName:ME.name,      // 규칙상 생성 시 ownerUid 필수
-    recProgress:0,                            // 목록 진행률 표시용 (민감정보 아님)
+    ownerUid:ME.uid, ownerName:ME.name,
+    recProgress:0,
+    schedule: { gs: gsFreq, is: isFreq },   // 상담 주기 · 다음 예정일
     createdAt:now, updatedAt:now
   });
   await db.ref(recordPath(cid)).set({
@@ -171,6 +260,45 @@ async function openCase(cid){
   show('scrEdit'); syncSegment(); renderTabs(); renderTab(); updateSticky();
 }
 function backToList(){ flushSave(); show('scrList'); renderList(); }
+
+// 사례 설정 (상담 주기 등) — 담당자·관리자만 저장 가능
+async function openCaseSettings(){
+  if(!CUR) return;
+  const c=CASES[CUR]; const sch=c.schedule||{gs:{freq:'none'},is:{freq:'none'}};
+  const gs=sch.gs||{}, is=sch.is||{};
+  modal(`<h3>사례 설정</h3>
+    <p style="font-size:13px;color:var(--muted48);margin-bottom:14px">${esc(c.title||'')} · ${esc(c.caseNo||'')}</p>
+
+    <label>일반상담 주기</label>
+    <div class="chips freq" data-target="gsFreq">${freqChipsHTML(gs.freq||'none')}</div>
+    <input id="gsFreqCustom" class="${gs.freq==='custom'?'':'hide'}" value="${esc(gs.customText||'')}" placeholder="예: 10일마다" style="margin-top:6px">
+    <label style="margin-top:10px">일반상담 다음 예정일 <span style="font-weight:400;color:var(--muted48)">(자동 계산 값. 필요 시 수정)</span></label>
+    <input id="gsNextDue" type="date" value="${esc(gs.nextDue||'')}">
+
+    <label style="margin-top:14px">개별상담 주기</label>
+    <div class="chips freq" data-target="isFreq">${freqChipsHTML(is.freq||'none')}</div>
+    <input id="isFreqCustom" class="${is.freq==='custom'?'':'hide'}" value="${esc(is.customText||'')}" placeholder="예: 10일마다" style="margin-top:6px">
+    <label style="margin-top:10px">개별상담 다음 예정일</label>
+    <input id="isNextDue" type="date" value="${esc(is.nextDue||'')}">
+
+    <div style="display:flex;gap:8px;margin-top:20px">
+      <button class="pill gray" style="flex:1" onclick="closeModal()">취소</button>
+      <button class="pill" style="flex:1" onclick="saveCaseSettings()">저장</button>
+    </div>`);
+}
+
+async function saveCaseSettings(){
+  const cid=CUR; if(!cid) return;
+  const gs = readFreq('gsFreq'); gs.nextDue = $('gsNextDue').value || '';
+  const is = readFreq('isFreq'); is.nextDue = $('isNextDue').value || '';
+  try{
+    await db.ref(casePath()+'/'+cid+'/schedule').set({gs, is});
+    CASES[cid].schedule = {gs, is};
+    toast('저장되었습니다'); closeModal();
+    if(!$('scrList').classList.contains('hide')) renderList();
+  }catch(e){ toast('저장 실패: 권한을 확인하세요'); }
+}
+
 
 function renderTabs(){
   const c=CASES[CUR];
@@ -297,6 +425,7 @@ function newSession(mode){
   CURSID = sid; CURTAB = 0;
   db.ref(SESSION_PATHS[mode](CUR)+'/'+sid).set(Object.assign({}, base,
     {createdAt:Date.now(), updatedAt:Date.now(), updatedBy:ME.name}));
+  updateNextDue(mode);
   renderTabs(); renderTab(); updateSticky();
   syncSegment();
 }
@@ -321,6 +450,7 @@ async function delSession(mode, sid){
     await db.ref(SESSION_PATHS[mode](CUR)+'/'+sid).remove();
     delete SESSIONS[mode][sid];
     if(CURSID===sid){ CURSID=null; }
+    await updateNextDue(mode);
     renderTab(); toast('삭제되었습니다');
   }catch(e){ toast('삭제 실패'); }
 }
@@ -485,11 +615,13 @@ async function flushSave(){
   if(MODE==='mse'){
     const c=CASES[CUR];
     await db.ref(recordPath(CUR)).update({s1:c.s1||{},s2:c.s2||{},s3:c.s3||{},aiSummary:c.aiSummary||'',updatedAt:now,updatedBy:ME.name});
-    await db.ref(casePath()+'/'+CUR).update({updatedAt:now, recProgress:progressOf(c)});
+    const followUp = (c.s3||{}).harmThought==='유' || (c.s1||{}).suiAge; // 자타해사고 유 또는 자살시도력
+    await db.ref(casePath()+'/'+CUR).update({updatedAt:now, recProgress:progressOf(c), followUp:!!followUp});
   } else if(CURSID){
     const d = SESSIONS[MODE][CURSID];
     await db.ref(SESSION_PATHS[MODE](CUR)+'/'+CURSID).update(Object.assign({}, d, {updatedAt:now, updatedBy:ME.name}));
     await db.ref(casePath()+'/'+CUR).update({updatedAt:now});
+    await updateNextDue(MODE);
   }
   dirty=false; localStorage.removeItem('draft_'+CUR);
   const el=$('saveState'); if(el) el.textContent='자동저장됨';
@@ -705,4 +837,52 @@ function printAll(){
   }
   h += `<p style="font-size:8pt;margin-top:8pt">출력: ${new Date().toLocaleString('ko-KR')} / ${esc(ME.name)} · 본 문서는 민감정보를 포함하므로 취급에 유의하십시오.</p>`;
   $('printArea').innerHTML=h; window.print();
+}
+
+/* ================================================================
+   상담 팁 편집 (관리자 전용)
+   저장 위치: orgTips/{orgId}/{tipKey} = {t, b}
+================================================================ */
+function openTipsEditor(){
+  if(ME.role!=='admin'){ toast('관리자만 편집할 수 있습니다'); return; }
+  const keys = Object.keys(TIPS);
+  modal(`<h3>상담 팁 편집 <span style="font-size:12px;font-weight:400;color:var(--muted48)">· 기관 공유</span></h3>
+    <p style="font-size:12.5px;color:var(--muted48);margin-bottom:10px;line-height:1.55">
+      편집한 팁은 저장 즉시 모든 직원의 화면에 반영됩니다. 기본값으로 되돌리려면 내용을 비우고 저장하세요.</p>
+    <label>편집할 항목</label>
+    <select id="tipKey" onchange="loadTip()">
+      ${keys.map(k=>`<option value="${k}">${esc(TIPS[k].t)}</option>`).join('')}
+    </select>
+    <label style="margin-top:12px">제목</label>
+    <input id="tipT" value="${esc(TIPS[keys[0]].t)}">
+    <label>내용</label>
+    <textarea id="tipB" rows="6" style="width:100%">${esc(TIPS[keys[0]].b)}</textarea>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="pill gray" style="flex:1" onclick="closeModal()">닫기</button>
+      <button class="pill ghost" onclick="resetTip()">기본값으로</button>
+      <button class="pill" style="flex:1" onclick="saveTip()">저장</button>
+    </div>`);
+}
+function loadTip(){
+  const k=$('tipKey').value;
+  $('tipT').value = TIPS[k].t;
+  $('tipB').value = TIPS[k].b;
+}
+async function saveTip(){
+  const k=$('tipKey').value, t=$('tipT').value.trim(), b=$('tipB').value.trim();
+  if(!t||!b){ toast('제목과 내용을 모두 입력하세요'); return; }
+  try{
+    await db.ref('orgTips/'+ME.orgId+'/'+k).set({t, b});
+    TIPS[k]={t, b};
+    toast('저장되었습니다 · 모든 직원에게 반영됨');
+  }catch(e){ toast('저장 실패: 권한을 확인하세요'); }
+}
+async function resetTip(){
+  const k=$('tipKey').value;
+  if(!confirm('이 팁을 기본값으로 되돌릴까요?')) return;
+  try{
+    await db.ref('orgTips/'+ME.orgId+'/'+k).remove();
+    // 기본값 재로드 (schema.js 원본이 남아있지 않으므로 페이지 새로고침이 가장 확실)
+    toast('기본값으로 되돌립니다. 새로고침해 주세요.');
+  }catch(e){ toast('처리 실패'); }
 }

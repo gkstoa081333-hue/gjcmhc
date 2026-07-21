@@ -286,3 +286,96 @@ textarea{resize:vertical;min-height:76px}
 }
 
 @media print{ .pgbreak{ page-break-before: always; } }
+
+/* ================= 목록 카드 배지 · 주기 칩 ================= */
+.badges{ display:flex; flex-wrap:wrap; gap:5px; margin-top:8px; }
+.bdg{
+  font-size:10.5px; font-weight:600; padding:2px 8px; border-radius:999px;
+  border:1px solid transparent; letter-spacing:0;
+}
+.bdg-warn{ background:#fff4e0; color:#8a5a00; border-color:#f0d5a0; }
+.bdg-danger{ background:var(--red-bg); color:var(--red); border-color:#f0c3c3; }
+
+.chips.freq{ margin-top:2px; }
+.chips.freq .chip{ font-size:12.5px; padding:6px 12px; }
+.chips.freq .chip.on{ padding:5px 11px; }
+
+/* ================================================================
+   좌측 서랍 (모바일 전용) · PC(1024px+)에서는 상단 gnav 그대로
+================================================================ */
+
+/* 햄버거 버튼 — 모바일에서만 표시 */
+.hamb{
+  color:#fff; font-size:20px; padding:0 6px; margin-right:4px;
+  background:none; border:none; cursor:pointer;
+}
+.hamb:active{ opacity:.6; transform:none; }
+
+/* PC 전용 gnav 링크: 모바일에서는 숨김 */
+@media (max-width:1023px){
+  .gnav .pc-only{ display:none; }
+  .gnav{ height:48px; padding:0 12px; gap:8px; }
+  .gnav .logo{ font-size:14px; }
+}
+
+/* PC에서는 햄버거 숨김 */
+@media (min-width:1024px){
+  .hamb{ display:none; }
+}
+
+/* 서랍 배경 오버레이 */
+.drawer-bg{
+  position:fixed; inset:0; background:rgba(0,0,0,.45);
+  z-index:70; opacity:0; pointer-events:none;
+  transition:opacity .22s ease;
+}
+.drawer-bg.open{ opacity:1; pointer-events:auto; }
+
+/* 서랍 본체 */
+.drawer{
+  position:fixed; top:0; left:0; bottom:0;
+  width:82vw; max-width:320px;
+  background:var(--tile1); color:#fff;
+  z-index:80; transform:translateX(-100%);
+  transition:transform .25s ease;
+  overflow-y:auto; padding-bottom:24px;
+  display:flex; flex-direction:column;
+}
+.drawer.open{ transform:translateX(0); box-shadow:0 0 32px rgba(0,0,0,.45); }
+
+/* PC에서는 서랍 자체 숨김 (혹시 열려있어도) */
+@media (min-width:1024px){
+  .drawer, .drawer-bg{ display:none; }
+}
+
+.drawer-head{
+  padding:22px 20px 16px; border-bottom:1px solid #3a3a3d;
+  position:relative;
+}
+.drawer-org{ font-size:12px; color:#a5a5a8; letter-spacing:-.2px; }
+.drawer-who{ font-size:16px; font-weight:600; margin-top:4px; letter-spacing:-.3px; }
+.drawer-close{
+  position:absolute; top:14px; right:14px;
+  width:32px; height:32px; border-radius:50%;
+  background:rgba(255,255,255,.08); color:#fff; font-size:20px; line-height:1;
+}
+.drawer-close:active{ background:rgba(255,255,255,.16); transform:none; }
+
+.drawer-sec{
+  font-size:11px; color:#86868b; letter-spacing:.4px; text-transform:uppercase;
+  padding:18px 20px 6px;
+}
+
+.drawer-it{
+  display:flex; align-items:center; gap:14px;
+  width:100%; padding:12px 20px; text-align:left;
+  color:#e5e5e7; font-size:15px; font-weight:500; letter-spacing:-.2px;
+  background:none; border:none; cursor:pointer;
+}
+.drawer-it:active{ background:rgba(255,255,255,.06); transform:none; }
+.drawer-it.on{ background:rgba(0,102,204,.18); color:#fff; }
+.drawer-it .ic{
+  font-size:18px; width:22px; text-align:center; flex:none;
+}
+
+/* 편집 화면의 서브내비 관리 버튼 — 이미 서랍으로 옮겼으니 제거 대상 없음 */
