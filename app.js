@@ -256,7 +256,7 @@ async function openCase(cid){
     try{ SESSIONS[m] = (await db.ref(SESSION_PATHS[m](cid)).once('value')).val() || {}; }
     catch(e){ SESSIONS[m] = {}; }
   }
-  $('edTitle').innerHTML=`${esc(CASES[cid].title||'')}<small>${esc(CASES[cid].caseNo||'번호없음')} · ${esc(CASES[cid].ownerName||'-')}</small>`;
+  $('edTitle').innerHTML=`<span class="t">${esc(CASES[cid].title||'')}</span><small>${esc(CASES[cid].caseNo||'번호없음')} · ${esc(CASES[cid].ownerName||'-')}</small>`;
   show('scrEdit'); syncSegment(); renderTabs(); renderTab(); updateSticky();
 }
 function backToList(){ flushSave(); show('scrList'); renderList(); }
@@ -362,7 +362,7 @@ function updateSticky(){
   if(!inSess){
     $('btnPrev').style.visibility = CURTAB===0?'hidden':'visible';
     const last = CURTAB===names.length-1;
-    $('btnNext').textContent = last ? (MODE==='mse'?'목록으로':'회차 목록') : '다음 섹션';
+    $('btnNext').textContent = last ? (MODE==='mse'?'목록':'저장 완료') : '다음';
   }
 }
 
